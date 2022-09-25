@@ -7,4 +7,4 @@ A interface utiliza o PySimpleGUI para sua construção com base no TKinter do p
 
 Para download do executável, clique em download! (Download apenas para windows no momento.)
 
-[![download](https://img.shields.io/github/downloads/Lokost/Randomizador/total.svg)](https://github.com/Lokost/Randomizador/releases/tag/update)
+# [Download](https://github.com/Lokost/Randomizador/releases/tag/update) ![download](https://img.shields.io/github/downloads/Lokost/Randomizador/total.svg)
