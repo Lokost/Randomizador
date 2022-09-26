@@ -1,30 +1,35 @@
 # Coding: UTF - 8
+from time import sleep
 from PySimpleGUI import *
 from func import Func
 from os.path import exists
 
 Func = Func()
 
-
 class Janela:
     recentes = list()
     dados = list()
     iniciado = False
-
-    def __init__(self):
+    reiniciar = False
+    
+    def abrir(self):
+        Func.obterOpcoes()
+        theme(Func.opcoes['tema'])
+        self.reiniciar = False
         self.principal()
+        return self.reiniciar
 
     def principal(self):
-        theme('reddit')
         Func.escolha = str()
         Func.aux = str()
 
-        menu = [['Arquivo', ['Editor','Adicionar lista online', 'Carregar lista online','---', 'Sobre']]]
+        menu = [['Arquivo', ['Editor','Adicionar lista online', 'Carregar lista online','---','Opções','---', 'Sobre']]]
 
         menu_func = {
             'Editor': lambda : self.editor(),
             'Sobre': lambda : [self.sobre()],
-            'Adicionar lista online': lambda: [self.add_online()]
+            'Adicionar lista online': lambda: [self.add_online()],
+            'Opções': lambda: self.opcoes()
         }
 
         layout1 = [[Text('Randomizador', font=(None, 15))],
@@ -32,11 +37,12 @@ class Janela:
                    [Combo(Func.obter_listas(), k='lista', enable_events=True, expand_x=True, readonly=True)],
                    [Button('Usar listas locais', k='local', expand_x=True, visible=False)],
                    [Multiline('<b>\n</b>'.join(self.recentes), disabled=True, expand_x=True, expand_y=True, k='recentes', font=(None, 15), justification='center')],
+                   [Button('Limpar histórico', k='clear', expand_x=True)],
                    [Checkbox('Som', k='som', default=True)]]
 
         layout2 = [[Text('Resultado:')],
                    [Multiline('', font=(None, 45), k='result', expand_x=True, justification='center', disabled=True, expand_y=True, no_scrollbar=True)],
-                   [Button('Randomizar', k='random', expand_x=True, font=(None, 30))]]
+                   [Button('Randomizar', k='random', expand_x=True, font=(None, 30), disabled=True)]]
 
         layout = [[Menu(menu)],
                   [Frame('Configurações', layout1, size=(300, 500)), Frame('Saída', layout2, size=(450, 500))]]
@@ -61,12 +67,16 @@ class Janela:
                     Func.bip()
 
             elif evt == 'lista':
-                self.dados = Func.gerar_lista(val['lista'])
-                janela['result'].update('')
-                Func.resetar()
-                janela['recentes'].update('')
-                janela.set_title(f'{val["lista"].replace(".txt","")} - Randomizador')
-                popup('Lista carregada')
+                try:
+                    self.dados = Func.gerar_lista(val['lista'])
+                    janela['result'].update('')
+                    Func.resetar()
+                    janela['recentes'].update('')
+                    janela.set_title(f'{val["lista"].replace(".txt","")} - Randomizador')
+                    popup('Lista carregada')
+                    janela['random'].update(disabled=False)
+                except Exception as e:
+                    popup(f'Não foi possível carregar a lista!\n{e}')
 
             elif evt == 'Carregar lista online':
                 lista = self.load_online()
@@ -77,15 +87,26 @@ class Janela:
                     janela.set_title(f'lista online - {lista} - Randomizador')
                     janela['lista'].update(visible=False)
                     janela['local'].update(visible=True)
+                    janela['random'].update(disabled=False)
 
             elif evt == 'local':
                 janela['lista'].update(visible=True)
                 janela['local'].update(visible=False)
 
+            elif evt == 'clear':
+                Func.resetar()
+                janela['recentes'].update('')
+
             else:
                 if evt in menu_func:
-                    menu_func[evt]()
-                    janela['lista'].update(values=Func.obter_listas())
+                    mOp = menu_func[evt]()
+                    if mOp not in [None, '']:
+                        if mOp == 'OK':
+                            janela.close()
+                            self.reiniciar = True
+                    
+                    else:
+                        janela['lista'].update(values=Func.obter_listas())
 
     def editor(self):
 
@@ -124,13 +145,12 @@ class Janela:
 
             elif evt == 'add':
                 item = popup_get_text('Digite o que será adicionado!')
-                print(item)
                 if item:
                     selecionada.append(item)
-                    janela['itens'].update(values=selecionada)
                     janela['pesquisa'].update('')
                 else:
                     popup('Não foi digitado um valor válido!')
+                janela['itens'].update(values=selecionada)
 
             elif evt == 'salvar':
                 if selecionada and val['listas']:
@@ -169,17 +189,17 @@ class Janela:
             elif evt == 'nl':
                 nome = popup_get_text('Nome da lista:')
 
-                if '.txt' not in nome and nome:
-                    nome += '.txt'
-
-                if nome in Func.obter_listas():
-                    popup('A lista já existe!')
-
                 if nome:
+                    if '.txt' not in nome:
+                        nome += '.txt'
+
+                    if nome in Func.obter_listas():
+                        popup('A lista já existe!')
+
                     selecionada = []
                     Func.salvar_arq(nome, selecionada)
                     janela['listas'].update(value=nome, values=Func.obter_listas())
-                    janela['itens'].update(selecionada)
+                    janela['itens'].update(selecionada, disabled=False)
 
             elif evt == 'apagar':
                 if popup_yes_no(f'Deseja apagar a lista {val["listas"]}?').lower() == "yes":
@@ -192,7 +212,7 @@ class Janela:
         layout = [[Text('Ramdomizador', font=(None, 20))],
                   [Text('Aplicação simples feita por Gabriel Gomes', font=(None, 15))],
                   [Text('AKA Lokost Games', font=(None, 10))],
-                  [Text('Versão: 0.4', font=(None, 8))],
+                  [Text('Versão: 0.5', font=(None, 8))],
                   [Button('Fechar', k='close')]]
 
         janela = Window('Sobre', layout, disable_minimize=True, resizable=False, modal=True, element_justification='center')
@@ -207,21 +227,33 @@ class Janela:
         layout = [
             [Text('Apelido: '), Input(k='apelido', expand_x=True)],
             [Text('URL: '), Input(k='url', expand_x=True)],
+            [Checkbox('Baixar Lista', k='download')],
             [Button('Adicionar', k='add',expand_x=True), Button('Cancelar', k='cancel', expand_x=True)]
         ]
 
-        janela = Window('Adicionar lista online', layout, size=(350, 100), modal=True)
+        janela = Window('Adicionar lista online', layout, size=(350, 130), modal=True)
 
         while True:
             evt, val = janela.read()
 
             if evt == 'add':
-                if Func.add_online(val['apelido'], val['url']):
-                    popup('Lista adicionada com sucesso!')
-                    janela.close()
-                    break
+                if val['apelido'] and val['url']:
+                    if Func.add_online(val['apelido'], val['url']):
+                        if val['download']:
+                            try:
+                                Func.salvar_arq(f"{val['apelido']}.txt", Func.gerar_lista(val['url'], True), True)
+                                popup('A lista foi salva e baixada!')
+                            except Exception as e:
+                                popup(f'Não foi possível baixar a lista!\n{e}')
+                        else:
+                            popup('Lista adicionada com sucesso!')
+                            janela.close()
+                            break
+                    else:
+                        popup('Não foi possível encontrar a lista!\nVerifique se a lista é um raw!\nOu sua conexão à internet!')
+
                 else:
-                    popup('Não foi possível encontrar a lista!\nVerifique se a lista é um raw!\nOu sua conexão à internet!')
+                    popup('Verifique as informações adicionadas!')
                 
                 
             
@@ -238,11 +270,12 @@ class Janela:
 
         layout = [
             [Text('Selecione uma lista para carregá-la:')],
-            [Combo(listas, k='lista', expand_x=True)],
+            [Combo(listas, k='lista', expand_x=True, default_value=listas[0])],
+            [Checkbox('Baixar lista', k='download')],
             [Button('Carregar', k='load', expand_x=True), Button('Cancelar', k='cancel', expand_x=True), Button('Remover', k='remove', expand_x=True)]
         ]
 
-        janela = Window('Carregar Online', layout, size=(350, 100), modal=True)
+        janela = Window('Carregar Online', layout, size=(350, 130), modal=True)
 
         while True:
             if not existente:
@@ -254,8 +287,11 @@ class Janela:
                 if evt == 'load':
                     lista = Func.gerar_lista(lista=online[val['lista']], online=True)
                     if lista:
+                        if val['download']:
+                            Func.salvar_arq(f"{val['lista']}.txt", lista, True)
+
                         self.dados = lista
-                        popup('Lista carregada')
+                        popup('Lista carregada' if not val['download'] else 'lista carregada e baixada!')
                         janela.close()
                         return val['lista']
                     else:
@@ -275,7 +311,45 @@ class Janela:
                     janela.close()
                     break
 
+    def opcoes(self):
+        tipos = (
+            ('Tipos suportados', '*.mp3 *.ogg *.wav'),
+            ('MP3', '*.mp3'),
+            ('Ogg', '*.ogg'),
+            ('WAV', '*.wav')
+        ,)
+
+        layout = [
+            [Text('Opções', font=(None, 20))],
+            [Text('Tema'), Combo(theme_list(), expand_x=True, k='tema', default_value=Func.opcoes['tema'])],
+            [Text('Som personalizado: '), Input(Func.opcoes['som'],k='som', expand_x=True, readonly=True), FileBrowse('Procurar', file_types=tipos), Button('Padrão', k='default')],
+            [Button('Aplicar', k='apply', expand_x=True), Button('Cancelar', k='cancel', expand_x=True)]
+            ]
+
+        janela = Window('Opções', layout, size=(650, 150), modal=True, finalize=True)
+
+        while True:
+            evt, val = janela.read()
+
+            if evt == 'apply':
+                Func.opcoes['tema'] = val['tema']
+                Func.opcoes['som'] = val['som']
+                Func.salvarOpcoes()
+                janela.close()
+                return popup_ok_cancel('Algumas opções foram atualizadas, reinicitar o aplicativo?')
+            
+            elif evt == 'default':
+                janela['som'].update('')
+            
+            elif evt in ['cancel', WIN_CLOSED]:
+                janela.close()
+                break
+    
+
 if __name__ == '__main__':
-    Janela()
+    j = Janela()
+    abrir = True
+    while abrir:
+        abrir = j.abrir()
 
 # Fim

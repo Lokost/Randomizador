@@ -12,23 +12,23 @@ from random import choice
 import requests
 
 
+def resource_path(relative):
+        base_path = getattr(sys, '_MEIPASS', dirname(abspath(__file__)))
+        return join(base_path, relative)
+
 class Func:
     dados = list()
     escolha = str()
     aux = ''
     recentes = list()
     iniciado = bool()
-
-
+    opcoes = dict()
     mixer.init()
+    som = mixer.Sound(resource_path('./bip.mp3'))
+
     def bip(self):
-        a = mixer.Sound(self.resource_path('./bip.mp3'))
-        a.play()
-        
-    @staticmethod
-    def resource_path(relative):
-        base_path = getattr(sys, '_MEIPASS', dirname(abspath(__file__)))
-        return join(base_path, relative)
+        self.som.stop()
+        self.som.play()
 
     @staticmethod
     def obter_listas() -> list:
@@ -88,8 +88,8 @@ class Func:
         self.escolha = ''
         self.iniciado = False
 
-    def salvar_arq(self, nome, lista):
-        texto = str('\n'.join(lista))
+    def salvar_arq(self, nome, lista, online = False):
+        texto = str(''.join(lista) if online else '\n'.join(lista))
         print(texto)
         with open(f'listas/{nome}', 'w') as arq:
             if lista:
@@ -162,4 +162,21 @@ class Func:
             del listas[lista]
             arq = open('listas/online.json', 'w')
             dump(listas, arq, indent=4, separators=(',',':'))
+
+    def obterOpcoes(self):
+        if not exists('opcoes.config'):
+            with open('opcoes.config', 'w') as arq:
+                opcoes = {
+                    "tema": "reddit",
+                    "som": ""
+                }
+                dump(opcoes, arq, indent=4, separators=(',',':'))
+        
+        with open('opcoes.config', encoding='utf-8') as arq:
+            self.opcoes = loads(arq.read())
+            self.som = mixer.Sound(resource_path('./bip.mp3') if not self.opcoes['som'] else self.opcoes['som'])
+
+    def salvarOpcoes(self):
+        with open('opcoes.config','w') as arq:
+            dump(self.opcoes, arq, indent=4, separators=(',',':'))
 # Fim
