@@ -11,6 +11,10 @@ class Janela:
     dados = list()
     iniciado = False
     reiniciar = False
+    mini = int()
+    maxi = int()
+    num = False
+    quant = int()
     
     def abrir(self):
         Func.obterOpcoes()
@@ -23,7 +27,7 @@ class Janela:
         Func.escolha = str()
         Func.aux = str()
 
-        menu = [['Arquivo', ['Editor','Adicionar lista online', 'Carregar lista online','---','Opções','---', 'Sobre']]]
+        menu = [['Arquivo', ['Editor','Adicionar lista online', 'Carregar lista online', 'Sorteio numérico','---','Opções','---', 'Sobre']]]
 
         menu_func = {
             'Editor': lambda : self.editor(),
@@ -38,7 +42,7 @@ class Janela:
                    [Button('Usar listas locais', k='local', expand_x=True, visible=False)],
                    [Multiline('<b>\n</b>'.join(self.recentes), disabled=True, expand_x=True, expand_y=True, k='recentes', font=(None, 15), justification='center')],
                    [Button('Limpar histórico', k='clear', expand_x=True)],
-                   [Checkbox('Som', k='som', default=True)]]
+                   [Checkbox('Som', k='som', default=True), Checkbox('Resultados repetidos', k='rept', default=True)]]
 
         layout2 = [[Text('Resultado:')],
                    [Multiline('', font=(None, 45), k='result', expand_x=True, justification='center', disabled=True, expand_y=True, no_scrollbar=True)],
@@ -56,15 +60,19 @@ class Janela:
                 break
 
             elif evt == 'random':
-                result = Func.escolha_random()
+                result = Func.escolha_random(self.num, self.mini, self.maxi, self.quant, val['rept'])
+                if result == None:
+                    popup('A lista está vazia!')
+                
+                else:
 
-                janela['result'].update(result[0])
+                    janela['result'].update(result[0])
 
-                if len(result) > 1:
-                    janela['recentes'].update(result[1])
+                    if len(result) > 1:
+                        janela['recentes'].update(result[1])
 
-                if val['som']:
-                    Func.bip()
+                    if val['som']:
+                        Func.bip()
 
             elif evt == 'lista':
                 try:
@@ -75,6 +83,7 @@ class Janela:
                     janela.set_title(f'{val["lista"].replace(".txt","")} - Randomizador')
                     popup('Lista carregada')
                     janela['random'].update(disabled=False)
+                    self.num = False
                 except Exception as e:
                     popup(f'Não foi possível carregar a lista!\n{e}')
 
@@ -96,6 +105,16 @@ class Janela:
             elif evt == 'clear':
                 Func.resetar()
                 janela['recentes'].update('')
+            
+            elif evt == 'Sorteio numérico':
+                if self.numeral():
+                    janela['result'].update('')
+                    Func.resetar()
+                    janela['recentes'].update('')
+                    janela.set_title(f'Sorteio numérico - Randomizador')
+                    janela['lista'].update(visible=False)
+                    janela['local'].update(visible=True)
+                    janela['random'].update(disabled=False)
 
             else:
                 if evt in menu_func:
@@ -262,8 +281,8 @@ class Janela:
                 break
 
     def load_online(self):
-        online = Func.obter_listas_online()
-        listas = Func.get_keys(online)
+        online = Func.obterListasOnline()
+        listas = Func.getKeys(online)
         existente = True
         if not online:
             existente = False
@@ -301,9 +320,9 @@ class Janela:
 
                 elif evt == 'remove':
                     if popup_ok_cancel(f'Deseja realmente deletar a lista "{val["lista"]}"?') == 'OK':
-                        Func.remove_online(val['lista'])
-                        online = Func.obter_listas_online()
-                        listas = Func.get_keys(online)
+                        Func.removeOnline(val['lista'])
+                        online = Func.obterListasOnline()
+                        listas = Func.getKeys(online)
                         janela['lista'].update(values=listas)
 
 
@@ -344,7 +363,37 @@ class Janela:
             elif evt in ['cancel', WIN_CLOSED]:
                 janela.close()
                 break
-    
+
+    def numeral(self):
+        layout = [
+            [Text('Mínimo'), Input(k='min', expand_x=True)],
+            [Text('Máximo'), Input(k='max', expand_x=True)],
+            [Text('Quantidade'), Input(k='quant', expand_x=True)],
+            [Button('Gerar', k='gen', expand_x=True, bind_return_key=True), Button('Cancelar', k='cancel', expand_x=True)]
+        ]
+
+        janela = Window('Numeral', layout, size=(300, 130), modal=True, finalize=True)
+
+        while True:
+            evt, val = janela.read()
+
+            if evt in [WIN_CLOSED, 'cancel']:
+                janela.close()
+                return False
+
+            elif evt == 'gen':
+                try:
+                    self.mini = int(val['min'])
+                    self.maxi = int(val['max'])
+                    self.quant = int(val['quant'])
+                    self.num = True
+                    print(f'{self.mini} {self.maxi} {self.quant}')
+                    janela.close()
+                    return True
+                
+                except ValueError:
+                    popup('Os valores devem ser inteiros e sem espaços!')
+
 
 if __name__ == '__main__':
     j = Janela()
