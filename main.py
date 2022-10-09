@@ -231,7 +231,7 @@ class Janela:
         layout = [[Text('Ramdomizador', font=(None, 20))],
                   [Text('Aplicação simples feita por Gabriel Gomes', font=(None, 15))],
                   [Text('AKA Lokost Games', font=(None, 10))],
-                  [Text('Versão: 0.5', font=(None, 8))],
+                  [Text('Versão: 0.6', font=(None, 8))],
                   [Button('Fechar', k='close')]]
 
         janela = Window('Sobre', layout, disable_minimize=True, resizable=False, modal=True, element_justification='center')
