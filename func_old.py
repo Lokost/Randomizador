@@ -1,6 +1,7 @@
-# coding: utf-8
-# Usuario: gabri
+# coding: UTF-8
+# Arquivo: func
 
+from io import TextIOWrapper
 from json import dump, loads
 import sys
 from pygame import mixer
@@ -8,25 +9,18 @@ from os import listdir, remove, mkdir
 from os.path import join, abspath, dirname
 from fnmatch import filter
 from random import choice, randint
-import requests as req
+import requests as r
 
-
-def resourcePath(relativo) -> str:
+def resourcePath(relative):
     base_path = getattr(sys, '_MEIPASS', dirname(abspath(__file__)))
-    return join(base_path, relativo)
-
+    return join(base_path, relative)
 
 class Func:
-    # Listas
     dados = list()
-    completa = list()
-    recentes = list()
-
-    # Escolha
+    Completa = list()
     escolha = str()
-    aux = str()
-
-    # Info da classe
+    aux = ''
+    recentes = list()
     iniciado = bool()
     opcoes = dict()
     mixer.init()
@@ -41,7 +35,6 @@ class Func:
         try:
             a = filter(listdir('listas'), '*.txt')
             return a
-
         except FileNotFoundError:
             mkdir('listas')
             return []
@@ -51,59 +44,61 @@ class Func:
             try:
                 with open(f'listas/{lista}') as arq:
                     dados = arq.read().split('\n')
-                    self.dados = list(dados)
-                    self.completa = list(dados)
-                    print(self.dados, self.completa)
+                    self.dados = dados
+                    self.Completa = dados
+                    print(self.dados, self.Completa)
                     return self.dados
-
             except FileNotFoundError:
+                print('Não foi encontrada a lista!')
                 return False
-
+    
         else:
             try:
-                request = req.get(lista, timeout=5)
-                request.encoding = 'utf-8'
+                request = r.get(lista, timeout=5)
+                r.encoding = 'utf-8'
                 dados = request.text.split('\n')
-                self.dados = list(dados)
-                self.completa = list(dados)
-
-            except (req.ConnectionError, req.Timeout):
+                self.dados = dados
+                self.Completa = dados
+                return self.dados
+            except (r.ConnectionError, r.Timeout):
                 return False
 
-    def escolhaRandom(self, num: bool = False, minimo: int = 0, maximo: int = 0, quantidade: int = 1, repete: bool = False) -> list | str:
+    def escolha_random(self, num: bool = False, mini: int = 0, maxi: int = 0, quanti: int = 1, rept = False) -> list | str:
+        print(rept, self.dados, self.Completa)
         def retorno():
             if self.iniciado:
                 self.recentes.append(self.aux)
                 r_recentes = list(self.recentes)
                 r_recentes.reverse()
                 self.aux = self.escolha
-                print(f'{"-"*12}\nRepete: {"Sim" if repete else "Não"}\nItem escolhido: {self.escolha}')
-                resultado = [self.escolha, '\n'.join(r_recentes), len(self.dados) if not repete else "♾"]
+                resultado = [ self.escolha, '\n'.join(r_recentes)]
                 return resultado
+            
             else:
                 self.iniciado = True
                 self.aux = self.escolha
-                resultado = [self.escolha, len(self.dados) if not repete else "♾"]
-                print(f'{"-"*12}\nRepete: {"Sim" if repete else "Não"}\nItem escolhido: {self.escolha}')
+                resultado = [self.escolha]
+                print(resultado)
                 return resultado
 
-        if repete and not num and self.completa:
-            self.escolha = choice(self.completa)
+        
+        if rept and not num and self.Completa:
+            self.escolha = choice(self.Completa)
             while self.escolha == self.aux:
-                self.escolha = choice(self.completa)
-                print(self.completa, self.escolha)
-
-        elif not repete and not num and self.dados:
+                self.escolha = choice(self.Completa)
+                print(self.Completa, self.escolha)
+        
+        elif not rept and not num and self.dados:
             if len(self.dados) > 0:
                 self.escolha = choice(self.dados)
                 self.dados.remove(self.escolha)
 
         elif num:
-            self.escolha = self.gerarNumeral(minimo, maximo, quantidade, repete)
+            self.escolha = self.gerarNumeral(mini, maxi, quanti, rept)
 
         else:
             self.escolha = ''
-
+            
         return retorno()
 
     def resetar(self):
@@ -112,29 +107,24 @@ class Func:
         self.escolha = ''
         self.iniciado = False
 
-    @staticmethod
-    def salvarArq(nome, lista, online=False) -> bool:
-        texto = str(''.join(lista) if online else '\n'.join(lista))
+    def salvar_arq(self, nome, lista, online = False) -> bool:
+        texto = str(''.join(lista)if online else '\n'.join(lista))
         with open(f'listas/{nome}', 'w') as arq:
             if lista:
                 arq.write(texto)
-
             else:
                 arq.write('')
-
             return True
 
-    @staticmethod
-    def deletarArq(nome) -> bool:
+    def deletar_arq(self, nome) -> bool:
         try:
             remove(f'listas/{nome}')
             return True
-
         except FileNotFoundError:
             return False
-
-    @staticmethod
-    def addOnline(apelido: str, url: str) -> bool:
+        
+    def add_online(self, apelido: str, url: str) -> bool:
+        arquivo = TextIOWrapper
         lista = dict()
 
         try:
@@ -144,35 +134,34 @@ class Func:
         except FileNotFoundError:
             with open('listas/online.json', 'w', encoding='utf-8') as arq:
                 arq.write('{\n\n}')
-
+        
         if 'raw' not in url:
             return False
-
+        
         try:
-            request = req.get(url, timeout=4)
-            request.encoding = 'utf-8'
+            request = r.get(url, timeout=5)
             lista[apelido] = url
             with open('listas/online.json', 'w', encoding='utf-8') as arq:
-                dump(lista, arq, indent=4, separators=(',', ':'))
-                return True
-
-        except(req.ConnectionError, req.Timeout):
+                dump(lista, arq, indent=4, separators = (',',':'))
+            return True
+            
+        except (r.ConnectionError, r.Timeout):
             return False
 
     @staticmethod
     def obterListasOnline() -> bool | dict:
         try:
             with open('listas/online.json', encoding='utf-8') as arq:
-                arq = loads(arq.read())
+                arq: dict = loads(arq.read())
                 return arq
-
+        
         except FileNotFoundError:
             return False
 
     @staticmethod
-    def getKeys(objeto: dict) -> list:
+    def getKeys(dict: dict) -> list:
         lista = []
-        for i in objeto:
+        for i in dict:
             lista.append(i)
         return lista
 
@@ -182,50 +171,48 @@ class Func:
             with open('listas/online.json', encoding='utf-8') as arq:
                 listas = loads(arq.read())
                 del listas[lista]
-                arq = open('listas/online', 'w', encoding='utf-8')
+                arq = open('listas/online.json', 'w', encoding='utf-8')
                 dump(listas, arq, indent=4, separators=(',', ':'))
 
         except FileNotFoundError:
             print('O arquivo de listas online não foi encontrado!')
-
+        
         except KeyError:
             print('A lista online não existe ou já foi apagada!')
-
+        
     def obterOpcoes(self):
         try:
             with open('opcoes.config', encoding='utf-8') as arq:
                 self.opcoes = loads(arq.read())
                 self.som = mixer.Sound(resourcePath('./bip.mp3') if not self.opcoes['som'] else self.opcoes['som'])
-
+        
         except FileNotFoundError:
-            with open('opcoes.config', 'w', encoding='utf-8') as arq:
+            with open('opcoes.config', 'w', encoding = 'utf-8') as arq:
                 opcoes = {
                     "tema": "reddit",
                     "som": ""
                 }
-                dump(opcoes, arq, indent=4, separators=(',', ':'))
+                dump(opcoes, arq, indent=4, separators=(',',':'))
 
     def salvarOpcoes(self):
         with open('opcoes.config', 'w', encoding='utf-8') as arq:
             dump(self.opcoes, arq, indent=4, separators=(',', ':'))
-
-    @staticmethod
-    def gerarNumeral(minimo, maximo, quantidade, repete=False) -> str | None:
+            self.obterOpcoes()
+    
+    def gerarNumeral(self, mini, maxi, quanti, rept = False) -> str | None:
         nums = list()
-        for i in range(quantidade):
-            if not repete:
-                if quantidade <= maximo:
-                    num = str(randint(minimo, maximo))
+        for i in range(quanti):
+            if rept:
+                if quanti <= maxi:
+                    num = str(randint(mini, maxi))
                     while num in nums:
-                        num = str(randint(minimo, maximo))
+                        num = str(randint(mini, maxi))
                     nums.append(num)
-
+                
                 else:
                     return None
-
             else:
-                nums.append(str(randint(minimo, maximo)))
-
+                nums.append(str(randint(mini, maxi)))
         return ' '.join(nums)
 
 # Fim
