@@ -7,4 +7,7 @@ A interface utiliza o PySimpleGUI para sua construção com base no TKinter do p
 
 Para download do executável, clique em download! (Download apenas para windows no momento.)
 
+### Para gerar o EXE via PyInstaller:
+_pyinstaller --onefile --windowed --add-data "bip.mp3;."  "main.py"_
+
 # [Download](https://github.com/Lokost/Randomizador/releases)
