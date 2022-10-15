@@ -5,4 +5,4 @@
 /output
 /listas
 *.spec
-export por pyinstaller.txt
+/export por pyinstaller.txt
